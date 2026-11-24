@@ -119,7 +119,7 @@ function desenhar() {
   const itemNav = n => `<button type="button" class="${S.rota === n[0] ? 'on' : ''}" ${S.rota === n[0] ? 'aria-current="page"' : ''} ${on(() => ir(n[0]))}>${ic(n[2])}${n[1]}</button>`;
   document.querySelector('#app aside').innerHTML = `<div class="marca"><span><img src="img/logo.png" alt=""></span>Focinhos Fofinhos</div>${NAV.map(itemNav).join('')}<div class="sep"></div>${NAV2.map(itemNav).join('')}<div class="fim">${itemNav(['sair', 'Sair', 'sair'])}</div>`;
   const q = document.activeElement && document.activeElement.id === 'q';
-  $('tela').innerHTML = ({ inicio: vInicio, agenda: vAgenda, clientes: vClientes, financeiro: vFinanceiro, mais: vMais, leads: vLeads, mensagens: vMensagens, equipe: vEquipe, paineis: vPaineis, relatorio: vRelatorio, ajustes: vAjustes, sair: () => { setTimeout(sair); return ''; } })[S.rota]();
+  $('tela').innerHTML = (cfg('Aviso', '') ? `<div class="nota am peq" style="margin-bottom:14px">${esc(cfg('Aviso', ''))}</div>` : '') + ({ inicio: vInicio, agenda: vAgenda, clientes: vClientes, financeiro: vFinanceiro, mais: vMais, leads: vLeads, mensagens: vMensagens, equipe: vEquipe, paineis: vPaineis, relatorio: vRelatorio, ajustes: vAjustes, sair: () => { setTimeout(sair); return ''; } })[S.rota]();
   const emMais = NAV2.some(n => n[0] === S.rota) || S.rota === 'mais';
   let nav = document.querySelector('nav.baixo');
   if (!nav) { nav = document.createElement('nav'); nav.className = 'baixo'; $('app').append(nav); const f = document.createElement('button'); f.className = 'fab'; f.type = 'button'; f.setAttribute('aria-label', 'Novo registro'); f.innerHTML = ic('add') + '<span>Novo</span>'; f.onclick = menuNovo; $('app').append(f); }
@@ -500,6 +500,21 @@ function fServicos() { janela('Serviços e preços', () => `${bt('Novo serviço'
 function fServico(s) { janela(s.ID ? 'Editar serviço' : 'Novo serviço', () => `${s.ID ? `<h2>${esc(s['Serviço'])}</h2>` : campo('z1', 'Serviço', '')}<div class="duo">${escolha('z2', 'Tipo', s.Tipo || 'Principal', ['Principal', 'Adicional'])}${escolha('z3', 'Espécie', s['Espécie'], ['Cachorro', 'Gato', 'Exótico'], 'Todas')}${escolha('z4', 'Porte', s.Porte, ['Pequeno', 'Médio', 'Grande'], 'Todos')}${campo('z6', 'Duração (min)', s['Duração'], 'number', 'min="0" step="5"')}${reais('z5', 'Preço (vazio = consultar)', s['Preço'])}${escolha('z7', 'Regra', s.Regra || 'Fixo', ['Fixo', 'A partir de', 'Consultar'])}</div>${escolha('z8', 'Situação', s.Ativo || 'Sim', [['Sim', 'Ativo'], ['Não', 'Inativo']])}<div class="rod">${bt('Voltar', fServicos)}${bt('Salvar', b => trabalhar(b, async () => { const o = { Tipo: val('z2'), 'Espécie': val('z3'), Porte: val('z4'), 'Preço': lerReais(val('z5')), 'Duração': num(val('z6')), Regra: val('z7'), Ativo: val('z8') }; if (s.ID) o.ID = s.ID; else { exigir(val('z1') && !servico(val('z1')), 'Informe um nome ainda não usado.'); o['Serviço'] = val('z1'); } await salvar([{ aba: 'Serviços', obj: o }], 'Serviço salvo'); fServicos(); }), 'p')}</div>`); }
 function fRegioes() { janela('Bairros e regiões', () => `${bt('Novo bairro', () => fRegiao({}), 'p', 'add')}<div class="card lista">${S.db['Regiões'].map(r => `<button type="button" class="item" ${on(() => fRegiao(r))}><span class="cresce"><span class="t">${esc(r.Bairro)}</span><br><span class="mut peq">${esc([r['Região'], r.Dias, num(r.Adicional) ? '+' + rs(r.Adicional) : ''].filter(Boolean).join(' · '))}</span></span>${tag(r.Atende || 'A confirmar', r.Atende === 'Sim' ? 'ok' : r.Atende === 'Não' ? 'rd' : 'am')}</button>`).join('') || vazio('Nenhum bairro cadastrado.', 'rota')}</div>`); }
 function fRegiao(r) { const m = new Set(String(r.Dias || '').split(',').map(s => s.trim()).filter(Boolean)); janela(r.ID ? 'Editar bairro' : 'Novo bairro', () => `${campo('g1', 'Bairro', r.Bairro)}${campo('g2', 'Região', r['Região'], 'text', 'placeholder="Ex.: Leste"')}<div><p class="forte peq" style="margin-bottom:8px">Dias de atendimento</p><div class="chips">${['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => `<button type="button" class="chip ${m.has(d) ? 'on' : ''}" ${on(b => { m.has(d) ? m.delete(d) : m.add(d); b.classList.toggle('on', m.has(d)); })}>${d}</button>`).join('')}</div></div><div class="duo">${escolha('g3', 'Atende', r.Atende || 'Sim', ['Sim', 'Não', 'A confirmar'])}${reais('g4', 'Adicional', r.Adicional)}</div><div class="rod">${bt('Voltar', fRegioes)}${bt('Salvar', b => trabalhar(b, async () => { exigir(val('g1'), 'Informe o bairro.'); const o = { Bairro: val('g1'), 'Região': val('g2'), Dias: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].filter(d => m.has(d)).join(', '), Atende: val('g3'), Adicional: lerReais(val('g4')) }; if (r.ID) o.ID = r.ID; await salvar([{ aba: 'Regiões', obj: o }], 'Bairro salvo'); fRegioes(); }), 'p')}</div>`); }
+
+// ---------- celular ----------
+// Botão Voltar: fecha a janela, depois volta ao Início e só então sai do app.
+history.pushState({ app: 1 }, '');
+addEventListener('popstate', () => {
+  if ($('janela').open) { fecha(); history.pushState({ app: 1 }, ''); }
+  else if (S.db && S.rota !== 'inicio') { ir('inicio'); history.pushState({ app: 1 }, ''); }
+  else history.back();
+});
+// Ao voltar para o app depois de 2 minutos, busca o que a outra pessoa lançou.
+let saiu = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { saiu = Date.now(); return; }
+  if (S.db && saiu && Date.now() - saiu > 120000 && !$('janela').open) carregar().catch(e => aviso(e.message));
+});
 
 // ---------- início ----------
 (async function () {
